@@ -1,25 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >= 0.7.0 <0.9.0;
+pragma solidity >=0.7.0 <0.9.0;
 
-contract Auction{
+contract Auction {
+    // Événement émis lors de la création d'une nouvelle enchère
+    event ListedAuction(uint indexed auction_id);
 
-    event AuctionListed(uint indexed auctionId, address owner, string title);
-    
-    uint id_counter=0;
+    // Compteur d'enchères - rendu public pour accès direct depuis le frontend
+    uint public id_counter = 0;
 
-    struct auction{
+    struct AuctionStruct {
         string prod_title;
         bool is_active;
         bool amount_status;
-        uint unique_id;
+        uint unique_id;           // = id_counter au moment de la création
         uint time_of_creation;
-        uint time_of_deadline; 
+        uint time_of_deadline;
         uint starting_bid_rate;
         uint winning_bid_amt;
         address auction_owner;
+        address current_winner;
     }
 
-    struct bidder{
+    struct Bidder {
         address bid_placer;
         uint bidded_value;
         uint order;
@@ -27,65 +29,154 @@ contract Auction{
         bool winner;
     }
 
-    mapping(uint => bidder[]) public bidders;
+    // Mapping des enchères → liste des enchérisseurs
+    mapping(uint => Bidder[]) public bidders;
 
-    auction[] public auctions;
+    // Tableau de toutes les enchères
+    AuctionStruct[] public auctions;
 
-     function list_new_auction(string memory title, uint days_to_deadline, uint starting_bid) public returns(uint256){
-        require(days_to_deadline > 0);
-        require(starting_bid > 0);
-        auctions.push(auction(title, true, false, id_counter, block.timestamp, uint256(block.timestamp + days_to_deadline *1 days), starting_bid, 0, msg.sender));
-        id_counter++;
-        emit listed_auction(id_counter-1);
-        return id_counter-1;
+    /**
+     * @dev Crée une nouvelle enchère
+     * @param title Titre de l'enchère
+     * @param days_to_deadline Durée en jours
+     * @param starting_bid Montant de départ en wei
+     * @return L'identifiant de l'enchère créée (id_counter - 1)
+     */
+    function list_new_auction(
+        string memory title,
+        uint days_to_deadline,
+        uint starting_bid
+    ) public returns (uint256) {
+        require(days_to_deadline > 0, "Duration must be > 0 days");
+        require(starting_bid > 0, "Starting bid must be > 0");
+
+        uint deadline = block.timestamp + (days_to_deadline * 1 days);
+
+        uint currentId = id_counter;
+
+        auctions.push(
+            AuctionStruct(
+                title,
+                true,                   // is_active
+                false,                  // amount_status
+                currentId,              // unique_id = id_counter
+                block.timestamp,
+                deadline,
+                starting_bid,
+                0,                      // winning_bid_amt initial
+                msg.sender,
+                address(0)              // current_winner initial
+            )
+        );
+
+        emit ListedAuction(currentId);
+
+        id_counter++;  // Incrémentation après l'émission et le push
+
+        return currentId;
     }
 
-    function view_all_auctions() public view returns(auction[] memory){
+    /**
+     * @dev Permet de récupérer la valeur actuelle de id_counter
+     * Utile quand l'événement n'est pas capturé correctement
+     */
+    function getCurrentIdCounter() public view returns (uint) {
+        return id_counter;
+    }
+
+    /**
+     * @dev Place une enchère sur une vente existante
+     */
+    function make_bid(
+        uint auction_id,
+        uint order,
+        uint bidded_value
+    ) public returns (Bidder[] memory) {
+        require(auction_id < auctions.length, "Invalid auction ID");
+
+        AuctionStruct storage auc = auctions[auction_id];
+
+        require(block.timestamp < auc.time_of_deadline, "Auction has ended");
+        require(auc.is_active, "Auction is not active");
+        require(bidded_value > auc.winning_bid_amt, "Bid must be higher than current winning bid");
+
+        bidders[auction_id].push(
+            Bidder(msg.sender, bidded_value, order, block.timestamp, false)
+        );
+
+        // Mise à jour du gagnant actuel
+        auc.winning_bid_amt = bidded_value;
+        auc.current_winner = msg.sender;
+
+        return bidders[auction_id];
+    }
+
+    /**
+     * @dev Paiement final par le gagnant après la fin de l'enchère
+     */
+    function make_payment(uint auction_id) public payable returns (bool) {
+        AuctionStruct storage auc = auctions[auction_id];
+        Bidder[] storage all_bidders = bidders[auction_id];
+
+        require(block.timestamp >= auc.time_of_deadline, "Auction is still active");
+        require(all_bidders.length > 0, "No bids placed");
+        require(msg.sender == auc.current_winner, "You are not the winner");
+        require(msg.value >= auc.winning_bid_amt, "Insufficient payment");
+        require(!auc.amount_status, "Payment already done");
+
+        auc.amount_status = true;
+
+        // Marquer le gagnant dans la liste des bidders
+        for (uint i = 0; i < all_bidders.length; i++) {
+            if (all_bidders[i].bid_placer == msg.sender) {
+                all_bidders[i].winner = true;
+                break;
+            }
+        }
+
+        // Remboursement de l'excédent
+        if (msg.value > auc.winning_bid_amt) {
+            payable(msg.sender).transfer(msg.value - auc.winning_bid_amt);
+        }
+
+        return true;
+    }
+
+    /**
+     * @dev Permet au propriétaire de retirer les fonds après paiement
+     */
+    function withdraw_from_auction(uint auction_id) public {
+        AuctionStruct storage auc = auctions[auction_id];
+        require(auc.is_active, "Auction already withdrawn");
+        require(auc.auction_owner == msg.sender, "Not the owner");
+        require(block.timestamp >= auc.time_of_deadline, "Auction not ended");
+        require(auc.amount_status, "Payment not received yet");
+
+        uint amount = auc.winning_bid_amt;
+        auc.is_active = false;
+        payable(msg.sender).transfer(amount);
+    }
+
+    // ────────────────────────────────────────────────
+    //                  GETTERS
+    // ────────────────────────────────────────────────
+
+    function view_all_auctions() public view returns (AuctionStruct[] memory) {
         return auctions;
     }
 
-    function make_bid(uint auction_id, uint orderval, uint bidded_value) public returns(bidder[] memory){
-        require(block.timestamp < auctions[auction_id].time_of_deadline);
-        require(auctions[auction_id].is_active==true);
-        bidder[] storage all_bidders = bidders[auction_id];
-        all_bidders.push(bidder(msg.sender, bidded_value, block.timestamp,orderval,false));
+    function view_all_transactions(uint auction_id) public view returns (Bidder[] memory) {
+        require(auction_id < auctions.length, "Invalid auction ID");
         return bidders[auction_id];
     }
 
-    function make_payment(uint auction_id) public payable returns(bool){
-        require(block.timestamp > auctions[auction_id].time_of_deadline);
-        bidder[] storage all_bidders = bidders[auction_id];
-        auction storage myauction = auctions[auction_id];
-        uint winner = all_bidders.length;
-        for(uint i=0;i<all_bidders.length;i++){
-            if(all_bidders[i].order==winner){
-                require(all_bidders[i].bid_placer==msg.sender);
-                require(msg.value==all_bidders[i].bidded_value);
-                require(all_bidders[i].winner == false);
-                myauction.winning_bid_amt=all_bidders[i].bidded_value;
-                myauction.amount_status = true;
-                all_bidders[i].winner=true;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function view_contract_balance() public view returns(uint256){
+    function view_contract_balance() public view returns (uint256) {
         return address(this).balance;
     }
 
-    function withdraw_from_auction(uint auction_id) public {
-        require(auctions[auction_id].is_active==true);
-        require(auctions[auction_id].auction_owner == msg.sender);
-        require(block.timestamp > auctions[auction_id].time_of_deadline);
-        require(auctions[auction_id].amount_status==true);
-        uint amt = auctions[auction_id].winning_bid_amt;
-        payable(msg.sender).transfer(amt);
-        auctions[auction_id].is_active=false;
-    }
-
-    function view_all_transactions(uint auction_id) public view returns(bidder[] memory){
-        return bidders[auction_id];
+    // Optionnel : récupérer une enchère spécifique
+    function getAuction(uint auction_id) public view returns (AuctionStruct memory) {
+        require(auction_id < auctions.length, "Invalid auction ID");
+        return auctions[auction_id];
     }
 }
