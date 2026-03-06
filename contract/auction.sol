@@ -3,7 +3,7 @@ pragma solidity >= 0.7.0 <0.9.0;
 
 contract Auction{
 
-    event listed_auction(uint auction_id);
+    event AuctionListed(uint indexed auctionId, address owner, string title);
     
     uint id_counter=0;
 

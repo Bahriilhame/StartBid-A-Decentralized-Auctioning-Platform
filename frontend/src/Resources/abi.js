@@ -3,13 +3,13 @@ export const abi = [
 		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": false,
+				"indexed": true,
 				"internalType": "uint256",
 				"name": "auction_id",
 				"type": "uint256"
 			}
 		],
-		"name": "listed_auction",
+		"name": "ListedAuction",
 		"type": "event"
 	},
 	{
@@ -66,6 +66,11 @@ export const abi = [
 				"internalType": "address",
 				"name": "auction_owner",
 				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "current_winner",
+				"type": "address"
 			}
 		],
 		"stateMutability": "view",
@@ -118,6 +123,103 @@ export const abi = [
 	{
 		"inputs": [
 			{
+				"internalType": "uint256",
+				"name": "auction_id",
+				"type": "uint256"
+			}
+		],
+		"name": "getAuction",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "prod_title",
+						"type": "string"
+					},
+					{
+						"internalType": "bool",
+						"name": "is_active",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "amount_status",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "unique_id",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "time_of_creation",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "time_of_deadline",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "starting_bid_rate",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "winning_bid_amt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "auction_owner",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "current_winner",
+						"type": "address"
+					}
+				],
+				"internalType": "struct Auction.AuctionStruct",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getCurrentIdCounter",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "id_counter",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "string",
 				"name": "title",
 				"type": "string"
@@ -153,7 +255,7 @@ export const abi = [
 			},
 			{
 				"internalType": "uint256",
-				"name": "orderval",
+				"name": "order",
 				"type": "uint256"
 			},
 			{
@@ -192,7 +294,7 @@ export const abi = [
 						"type": "bool"
 					}
 				],
-				"internalType": "struct Auction.bidder[]",
+				"internalType": "struct Auction.Bidder[]",
 				"name": "",
 				"type": "tuple[]"
 			}
@@ -269,9 +371,14 @@ export const abi = [
 						"internalType": "address",
 						"name": "auction_owner",
 						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "current_winner",
+						"type": "address"
 					}
 				],
-				"internalType": "struct Auction.auction[]",
+				"internalType": "struct Auction.AuctionStruct[]",
 				"name": "",
 				"type": "tuple[]"
 			}
@@ -317,7 +424,7 @@ export const abi = [
 						"type": "bool"
 					}
 				],
-				"internalType": "struct Auction.bidder[]",
+				"internalType": "struct Auction.Bidder[]",
 				"name": "",
 				"type": "tuple[]"
 			}

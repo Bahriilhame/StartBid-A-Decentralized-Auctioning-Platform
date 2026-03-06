@@ -55,7 +55,7 @@ class BidStats extends Component{
              web3 = new Web3(window.ethereum);
              console.log(web3);
             //  var address = "0x1de39873ba5fa574D322d0cE8f8dca17A00205aF";
-             var address = "0x1de39873ba5fa574D322d0cE8f8dca17A00205aF";
+             var address = "0x03759FED743Ee7C5c972ce2109b0c2dE073a0172";
              var contract = new web3.eth.Contract(abi, address);
              this.setState({contractval: contract});
              await contract.methods.view_all_auctions().call().then(async (result)=> {
@@ -597,7 +597,7 @@ class BidStats extends Component{
                                 this.connect(web3);
                                 this.initialiseAddress(web3);
 
-                                var address = "0x121Aef8E888f8229b2c59C339Df9FB335200c3Ef";
+                                var address = "0x03759FED743Ee7C5c972ce2109b0c2dE073a0172";
  
                                 var contract = new web3.eth.Contract(abi, address);
  

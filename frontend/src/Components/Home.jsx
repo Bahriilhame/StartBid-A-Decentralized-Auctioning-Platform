@@ -88,7 +88,7 @@ class Home extends Component{
          if(typeof window.web3 !== 'undefined'){
              web3 = new Web3(window.ethereum);
              console.log(web3);
-             var address = "0x121Aef8E888f8229b2c59C339Df9FB335200c3Ef";
+             var address = "0x03759FED743Ee7C5c972ce2109b0c2dE073a0172";
              var contract = new web3.eth.Contract(abi, address);
              this.setState({contractval: contract});
              this.setState({web3: web3});
@@ -427,7 +427,7 @@ class Home extends Component{
                                 this.connect(web3);
                                 this.initialiseAddress(web3);
 
-                                var address = "0x121Aef8E888f8229b2c59C339Df9FB335200c3Ef";
+                                var address = "0x03759FED743Ee7C5c972ce2109b0c2dE073a0172";
  
                                 var contract = new web3.eth.Contract(abi, address);
  
@@ -588,7 +588,7 @@ class Home extends Component{
                         }} variant="primary" >
                         Submit
                     </Button> */}
-                    <Button onClick={async () => {
+                    {/* <Button onClick={async () => {
     var title = document.getElementById("title").value;
     var price = document.getElementById("Price").value;
     var description = document.getElementById("Description").value;
@@ -598,7 +598,7 @@ class Home extends Component{
     ending_date = parseInt(ending_date); // jours
     var unix_deadline = parseInt(Date.now()) + (ending_date * 86400000); // ms
 
-    var key = { title, price, description, link, ending_date: unix_deadline };
+    // var key = { title, price, description, link, ending_date: unix_deadline };
 
     // 1. Appel au contrat blockchain
     try {
@@ -620,6 +620,14 @@ class Home extends Component{
         console.log("ID blockchain:", auction_id);
 
         // 2. Envoi au backend (comme avant)
+        const key = {
+            title,
+            price,
+            description,
+            link,
+            ending_date: unix_deadline,
+            blockchain_id: auction_id,
+        };
         socket.emit('add_auction', key);
 
         this.setState({ auction_listed_modal: true });
@@ -629,6 +637,253 @@ class Home extends Component{
         alert("Échec création sur blockchain : " + (err.reason || err.message));
     }
 }} variant="primary">
+    Submit
+</Button> */}
+
+{/* <Button
+    onClick={async () => {
+        const title = document.getElementById("title").value.trim();
+        const price = document.getElementById("Price").value.trim();
+        const description = document.getElementById("Description").value.trim();
+        const link = document.getElementById("link").value.trim();
+        const daysStr = document.getElementById("ending_date").value.trim();
+
+        if (!title || !price || !description || !link || !daysStr) {
+            alert("Tous les champs sont obligatoires !");
+            return;
+        }
+
+        const days = parseInt(daysStr);
+        if (isNaN(days) || days <= 0) {
+            alert("La durée doit être un nombre de jours positif.");
+            return;
+        }
+
+        const unix_deadline = Date.now() + days * 86400000;
+
+        try {
+            const web3 = this.state.web3;
+            if (!web3) throw new Error("Web3 non initialisé");
+
+            const contract = this.state.contractval;
+            if (!contract) throw new Error("Contrat non chargé");
+
+            const account_addr = this.state.account_addr;
+            if (!account_addr) throw new Error("Wallet non connecté");
+
+            const starting_bid_wei = web3.utils.toWei(price, 'ether');
+
+            console.log("→ Envoi list_new_auction :", {
+                title,
+                days,
+                starting_bid_wei,
+                from: account_addr
+            });
+
+            // Estimation du gaz (très utile pour détecter les revert avant envoi)
+            await contract.methods.list_new_auction(title, days, starting_bid_wei)
+                .estimateGas({ from: account_addr });
+
+            const tx = await contract.methods.list_new_auction(
+                title,
+                days,
+                starting_bid_wei
+            ).send({ from: account_addr });
+            console.log("Transaction complète :", tx);
+console.log("Transaction hash :", tx.transactionHash);
+console.log("Status :", tx.status);                   // true = succès
+console.log("Events présents :", Object.keys(tx.events || {}));
+console.log("listed_auction existe ?", !!tx.events?.listed_auction);
+
+            console.log("Transaction réussie :", tx);
+
+            let auction_id = null;
+
+            // Méthode sécurisée pour récupérer l'ID
+            if (tx.events && tx.events.listed_auction) {
+                auction_id = tx.events.listed_auction.returnValues.auction_id;
+                console.log("ID via événement :", auction_id);
+            } else {
+                console.warn("Événement 'listed_auction' non trouvé dans tx.events");
+                // Alternative : on peut appeler id_counter() après la tx
+                const currentCounter = await contract.methods.id_counter().call();
+                auction_id = parseInt(currentCounter) - 1; // dernier ID créé
+                console.log("ID récupéré via id_counter :", auction_id);
+            }
+
+            if (!auction_id && auction_id !== 0) {
+                throw new Error("Impossible de récupérer l'ID de l'enchère");
+            }
+
+            const key = {
+                title,
+                price,
+                description,
+                link,
+                ending_date: unix_deadline,
+                blockchain_id: auction_id,
+            };
+
+            console.log("Envoi au backend/socket :", key);
+
+            socket.emit('add_auction', key);
+
+            this.setState({ 
+                auction_listed_modal: true,
+                setshow: false 
+            });
+
+        } catch (err) {
+            console.error("Erreur complète :", err);
+
+            let errorMsg = "Échec création enchère";
+
+            if (err.code === 4001) {
+                errorMsg += " : Transaction rejetée par l'utilisateur";
+            } else if (err.message?.includes("revert")) {
+                errorMsg += " : Rejet par le contrat (require non satisfait)";
+                if (err.data?.reason) errorMsg += ` → ${err.data.reason}`;
+            } else if (err.message?.includes("gas")) {
+                errorMsg += " : Problème de gas (solde insuffisant ?)";
+            } else {
+                errorMsg += ` : ${err.message || err.toString()}`;
+            }
+
+            alert(errorMsg);
+        }
+    }}
+    variant="primary"
+>
+    Submit
+</Button> */}
+<Button
+    variant="primary"
+    onClick={async () => {
+        // Récupération des inputs
+        const titleEl = document.getElementById("title");
+        const priceEl = document.getElementById("Price");
+        const descEl = document.getElementById("Description");
+        const linkEl = document.getElementById("link");
+        const daysEl = document.getElementById("ending_date");
+
+        const title = titleEl?.value?.trim() || "";
+        const priceStr = priceEl?.value?.trim() || "";
+        const description = descEl?.value?.trim() || "";
+        const link = linkEl?.value?.trim() || "";
+        const daysStr = daysEl?.value?.trim() || "";
+
+        // Validation stricte AVANT tout appel
+        if (!title || !priceStr || !description || !link || !daysStr) {
+            alert("Veuillez remplir TOUS les champs.");
+            return;
+        }
+
+        const days = parseInt(daysStr, 10);
+        if (isNaN(days) || days < 1) {
+            alert("La durée doit être un nombre entier ≥ 1 jour.");
+            return;
+        }
+
+        const price = parseFloat(priceStr);
+        if (isNaN(price) || price <= 0) {
+            alert("Le prix de départ doit être un nombre positif.");
+            return;
+        }
+
+        try {
+            const web3 = this.state.web3;
+            if (!web3 || !this.state.contractval || !this.state.account_addr) {
+                alert("Wallet ou contrat non chargé. Connectez MetaMask.");
+                return;
+            }
+
+            const contract = this.state.contractval;
+            const from = this.state.account_addr;
+
+            const starting_bid_wei = web3.utils.toWei(price.toString(), "ether");
+
+            const paramsLog = {
+                title,
+                days_to_deadline: days,
+                starting_bid_wei,
+                starting_bid_eth: price,
+                from
+            };
+            console.log("Paramètres envoyés :", paramsLog);
+
+            // Simulation (doit réussir si require passent)
+            const gasEst = await contract.methods
+                .list_new_auction(title, days, starting_bid_wei)
+                .estimateGas({ from });
+
+            console.log("Gas estimé :", gasEst);
+
+            // Envoi réel
+            const tx = await contract.methods
+                .list_new_auction(title, days, starting_bid_wei)
+                .send({ from });
+
+            console.log("Transaction minée :", {
+                hash: tx.transactionHash,
+                block: tx.blockNumber,
+                events: Object.keys(tx.events || {})
+            });
+
+            // Récupération ID
+            let auction_id = tx.events?.ListedAuction?.returnValues?.auction_id ||
+                            tx.events?.listed_auction?.returnValues?.auction_id;
+
+            if (!auction_id) {
+                const counter = await contract.methods.id_counter().call();
+                auction_id = Number(counter) - 1;
+                console.log("ID via counter fallback :", auction_id);
+            }
+
+            if (!auction_id && auction_id !== 0) {
+                throw new Error("ID enchère non récupéré");
+            }
+
+            const unix_deadline = Date.now() + days * 86400000;
+
+            const key = {
+                title,
+                price,
+                description,
+                link,
+                ending_date: unix_deadline,
+                blockchain_id: Number(auction_id)
+            };
+
+            console.log("Envoi socket :", key);
+            socket.emit('add_auction', key);
+
+            this.setState({ auction_listed_modal: true, setshow: false });
+
+        } catch (err) {
+            console.error("Erreur détaillée :", err);
+
+            let message = "Échec création enchère";
+
+            if (err.code === 4001) {
+                message += " → Annulée par l'utilisateur";
+            } else if (err.message?.includes("revert")) {
+                if (err.data?.includes("Duration")) {
+                    message += " → Durée ≤ 0 jours";
+                } else if (err.data?.includes("Starting bid")) {
+                    message += " → Prix de départ ≤ 0";
+                } else {
+                    message += " → Require échoué (autre)";
+                }
+            } else if (err.message?.includes("toWei")) {
+                message += " → Format prix invalide";
+            } else {
+                message += ` → ${err.message || "Erreur inconnue"}`;
+            }
+
+            alert(message);
+        }
+    }}
+>
     Submit
 </Button>
                     </Form>

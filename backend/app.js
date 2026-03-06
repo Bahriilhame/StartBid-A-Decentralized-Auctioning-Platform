@@ -325,11 +325,28 @@ app.get("/home", async (req, res) => {
     }
 });
 
+// app.post("/product", async (req, res) => {
+//     try {
+//         const id = parseInt(req.body.id);
+//         const auction = await db.collection("auctions").findOne({ _id: id });
+//         res.json(auction || {});
+//     } catch (e) {
+//         console.error(e);
+//         res.status(500).json({ error: "Erreur serveur" });
+//     }
+// });
 app.post("/product", async (req, res) => {
     try {
-        const id = parseInt(req.body.id);
-        const auction = await db.collection("auctions").findOne({ _id: id });
-        res.json(auction || {});
+        const mongoId = parseInt(req.body.id);  // on cherche par _id MongoDB
+        console.log("MongoDB ID:", mongoId);
+        
+        const auction = await db.collection("auctions").findOne({ _id: mongoId });
+
+        if (!auction) {
+            return res.status(404).json({ error: "Enchère non trouvée" });
+        }
+
+        res.json(auction);  // ← renvoie TOUT, dont blockchain_id
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: "Erreur serveur" });
@@ -377,32 +394,66 @@ app.post("/signup", async (req, res) => {
     }
 });
 
+// app.post("/addauction", async (req, res) => {
+//     try {
+//         const cursor = await db.collection("auctions").find().sort({ _id: -1 }).limit(1);
+//         const last = await cursor.toArray();
+//         const newId = last.length > 0 ? last[0]._id + 1 : 1;
+
+//         const auction = {
+//             ...req.body,
+//             _id: newId,
+//             price: parseInt(req.body.price),
+//             ending_date: parseInt(req.body.ending_date),
+//             winner_address: "",
+//             bid_count: 0
+//         };
+
+//         await db.collection("auctions").insertOne(auction);
+//         res.json({ success: true, auction });
+//     } catch (e) {
+//         console.error(e);
+//         res.status(500).json({ error: "Erreur serveur" });
+//     }
+// });
+
+// ────────────────────────────────────────────────
+// Socket.io – enchères en temps réel
+// ────────────────────────────────────────────────
 app.post("/addauction", async (req, res) => {
     try {
         const cursor = await db.collection("auctions").find().sort({ _id: -1 }).limit(1);
         const last = await cursor.toArray();
-        const newId = last.length > 0 ? last[0]._id + 1 : 1;
+        const newMongoId = last.length > 0 ? last[0]._id + 1 : 1;
+
+        // blockchain_id doit venir du frontend (envoyé lors de la création via socket ou HTTP)
+        const blockchainId = req.body.blockchain_id 
+            ? parseInt(req.body.blockchain_id) 
+            : newMongoId;  // fallback si pas fourni
 
         const auction = {
             ...req.body,
-            _id: newId,
-            price: parseInt(req.body.price),
-            ending_date: parseInt(req.body.ending_date),
+            _id: newMongoId,                  // ID MongoDB
+            blockchain_id: blockchainId,      // ID blockchain (prioritaire)
+            price: parseInt(req.body.price || 0),
+            ending_date: parseInt(req.body.ending_date || 0),
             winner_address: "",
             bid_count: 0
         };
 
         await db.collection("auctions").insertOne(auction);
-        res.json({ success: true, auction });
+
+        res.json({ 
+            success: true, 
+            auction,
+            mongo_id: newMongoId,
+            blockchain_id: blockchainId 
+        });
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: "Erreur serveur" });
     }
 });
-
-// ────────────────────────────────────────────────
-// Socket.io – enchères en temps réel
-// ────────────────────────────────────────────────
 
 io.on('connection', (socket) => {
     console.log("Un utilisateur s'est connecté");
@@ -449,25 +500,58 @@ io.on('connection', (socket) => {
         }
     });
 
+    // socket.on('add_auction', async (data) => {
+    //     try {
+    //         const cursor = await db.collection("auctions").find().sort({ _id: -1 }).limit(1);
+    //         const last = await cursor.toArray();
+    //         const newId = last.length > 0 ? last[0]._id + 1 : 1;
+
+    //         const auction = {
+    //             ...data,
+    //             _id: newId,
+    //             price: parseInt(data.price),
+    //             ending_date: parseInt(data.ending_date),
+    //             winner_address: "",
+    //             bid_count: 0
+    //         };
+
+    //         await db.collection("auctions").insertOne(auction);
+
+    //         // Envoi mise à jour à tous
+    //         const updatedAuctions = await db.collection("auctions").find().sort({ bid_count: -1 }).toArray();
+    //         io.emit('update', updatedAuctions);
+    //     } catch (err) {
+    //         console.error("Erreur socket add_auction :", err);
+    //     }
+    // });
     socket.on('add_auction', async (data) => {
         try {
             const cursor = await db.collection("auctions").find().sort({ _id: -1 }).limit(1);
             const last = await cursor.toArray();
-            const newId = last.length > 0 ? last[0]._id + 1 : 1;
+            const newMongoId = last.length > 0 ? last[0]._id + 1 : 1;
+
+            // blockchain_id doit être fourni dans data (depuis le frontend)
+            const blockchainId = data.blockchain_id 
+                ? parseInt(data.blockchain_id) 
+                : newMongoId;
 
             const auction = {
                 ...data,
-                _id: newId,
-                price: parseInt(data.price),
-                ending_date: parseInt(data.ending_date),
+                _id: newMongoId,
+                blockchain_id: blockchainId,
+                price: parseInt(data.price || 0),
+                ending_date: parseInt(data.ending_date || 0),
                 winner_address: "",
                 bid_count: 0
             };
 
             await db.collection("auctions").insertOne(auction);
 
-            // Envoi mise à jour à tous
-            const updatedAuctions = await db.collection("auctions").find().sort({ bid_count: -1 }).toArray();
+            const updatedAuctions = await db.collection("auctions")
+                .find()
+                .sort({ bid_count: -1 })
+                .toArray();
+
             io.emit('update', updatedAuctions);
         } catch (err) {
             console.error("Erreur socket add_auction :", err);

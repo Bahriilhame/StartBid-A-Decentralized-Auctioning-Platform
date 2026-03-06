@@ -2,12 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import App from './App';
+import process from 'process';
 
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import './App.css';
-
+// window.process = process;
+window.process = { env: { NODE_ENV: 'development' } };
 ReactDOM.render(
   <React.StrictMode>
     <App />
