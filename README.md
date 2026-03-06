@@ -1,12 +1,4 @@
 # StartBid - A Decentralized Auctioning Platform
-Hack A Web Hackathon Submission, chosen problem statement: 3-FINTECH
-
-## Submission
-Our final application has been deployed at https://startbid.herokuapp.com/
-
-View our deployed smart contract and its interactions on https://ropsten.etherscan.io/address/0xe6ccafb99015d50d631b2f310b50471eb411f8da
-
-View our pitch presentation @ https://github.com/bharathbabu68/Red-Ross/blob/main/StartBid%20%E2%80%93%20A%20Decentralized%20Auctioning%20Platform.pptx
 
 ## Our Platform
 ### Introduction
@@ -40,30 +32,3 @@ Our platform uses a MongoDB cloud Atlas Database in order to keep track of the c
 - Solidity
 
 ### Our smart-contract
-Our smart contract is present in the contract directory and also has been deployed and verified on the Ropsten test network. 
-Contract Address: 0xE6CcAFB99015d50D631B2f310B50471EB411f8Da
-View our contract interactions at https://ropsten.etherscan.io/address/0xe6ccafb99015d50d631b2f310b50471eb411f8da
-
-## Platform Screenshots
-### Authentication / Login Page
-![login](https://github.com/bharathbabu68/Red-Ross/blob/main/screenshots/1.png)
-
-### Connecting wallet to website
-![connecting_wallet](https://github.com/bharathbabu68/Red-Ross/blob/main/screenshots/2.png)
-
-### Main auctions page (Real time auctions)
-![main_page](https://github.com/bharathbabu68/Red-Ross/blob/main/screenshots/3.png)
-![main_page_2](https://github.com/bharathbabu68/Red-Ross/blob/main/screenshots/4.png)
-
-### List new auction
-![list_auc](https://github.com/bharathbabu68/Red-Ross/blob/main/screenshots/5.png)
-
-### Auction Item Page
-![item](https://github.com/bharathbabu68/Red-Ross/blob/main/screenshots/6.png)
-
-### Blockchain Bid History
-![history](https://github.com/bharathbabu68/Red-Ross/blob/main/screenshots/7.png)
-
-### Our smart contract interactions
-![smart_c](https://github.com/bharathbabu68/Red-Ross/blob/main/screenshots/8.png)
-
