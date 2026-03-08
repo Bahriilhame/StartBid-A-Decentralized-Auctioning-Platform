@@ -148,8 +148,26 @@ class BidStats extends Component{
                 <Row>
                     {this.state.auctions.map((auction)=>{
                         var blockchain_data = this.state.blockchain_auction_data[auction._id];
-                         if((filtercriteria=="wins") && (this.state.wins_payment_filter==="Payment Pending") && (parseInt(Date.now()) > auction.ending_date) && (auction.winner_address===this.state.account_addr) && (blockchain_data.amount_status==false)){
-                            return(
+                        console.log({
+    currentTimeSeconds: parseInt(Date.now()/1000),
+    blockchainDeadline: blockchain_data.time_of_deadline,
+    dbDeadline: auction.ending_date,
+    isEndedByBlockchain: parseInt(Date.now()/1000) > blockchain_data.time_of_deadline,
+    isEndedByDB: parseInt(Date.now()) > auction.ending_date
+});
+if((filtercriteria=="wins") && (this.state.wins_payment_filter==="Payment Pending") && 
+   (parseInt(Date.now()/1000) > parseInt(blockchain_data.time_of_deadline)) && // CHANGEMENT ICI
+   (auction.winner_address===this.state.account_addr) && 
+   (blockchain_data.amount_status==false)){
+    
+console.log("Mon horloge:", Date.now()/1000);
+// console.log("Dernier bloc blockchain:", await web3.eth.getBlock('latest').timestamp);
+console.log("Deadline blockchain:", blockchain_data.time_of_deadline);
+console.log("Deadline DB:", auction.ending_date/1000);
+                            // if((filtercriteria=="wins") && (this.state.wins_payment_filter==="Payment Pending") && (parseInt(Date.now()) > auction.ending_date) && (auction.winner_address===this.state.account_addr) && (blockchain_data.amount_status==false)){
+                        //     console.log(Date.now(),' / ' ,auction.ending_date);
+                            
+                        return(
                                 <Col key={auction._id} md={4} 
                                     style={{padding: '30px'}}>
                                     <Card 
@@ -196,19 +214,42 @@ class BidStats extends Component{
                                                 <Col md={12} style={{}}>
                                                 <Button  
                                                         style={{width:'100%', backgroundColor:'#FFA0A0', border:'none', color:'#21325E' }}
+                                                        // onClick = { () => {
+                                                        //     var web3 = this.state.web3;
+                                                        //     var contract = this.state.contractval;
+                                                        //     var account_addr = this.state.account_addr;
+                                                        //     var amount = (auction.price).toString();
+                                                        //     amount =web3.utils.toWei(amount, 'ether');
+                                                        //     contract.methods.make_payment(auction._id).send({from:account_addr, value:amount})
+                                                        //     .on('receipt', function(receipt){
+                                                        //         alert("Payment Successful");
+                                                        //     })
+                                                        //     .on('error', function(error){
+                                                        //         alert("Payment Failed");
+                                                        //     })
+                                                        // }}
                                                         onClick = { () => {
                                                             var web3 = this.state.web3;
                                                             var contract = this.state.contractval;
                                                             var account_addr = this.state.account_addr;
-                                                            var amount = (auction.price).toString();
-                                                            amount =web3.utils.toWei(amount, 'ether');
-                                                            contract.methods.make_payment(auction._id).send({from:account_addr, value:amount})
-                                                            .on('receipt', function(receipt){
-                                                                alert("Payment Successful");
-                                                            })
-                                                            .on('error', function(error){
-                                                                alert("Payment Failed");
-                                                            })
+                                                            
+                                                            // Get the winning bid amount from blockchain data instead of auction.price
+                                                            var blockchain_data = this.state.blockchain_auction_data[auction._id];
+                                                            var amount = blockchain_data.winning_bid_amt; // This is already in wei
+                                                            
+                                                            // No need to convert again - it's already in wei
+                                                            contract.methods.make_payment(auction._id).send({from: account_addr, value: amount})
+                                                                .on('receipt', function(receipt){
+                                                                    alert("Payment Successful");
+                                                                    // Refresh the data
+                                                                    contract.methods.view_all_auctions().call().then((result) => {
+                                                                        this.setState({blockchain_auction_data: result});
+                                                                    });
+                                                                })
+                                                                .on('error', function(error){
+                                                                    console.error("Payment error:", error);
+                                                                    alert("Payment Failed: " + (error.message || "Unknown error"));
+                                                                });
                                                         }}
                                                     > Make payment </Button>
                                                     
